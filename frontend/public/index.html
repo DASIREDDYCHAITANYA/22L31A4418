@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>URL Shortener</title>
+  <style>
+    :root { --bg:#0f172a; --card:#111827; --txt:#e5e7eb; --muted:#9ca3af; --accent:#60a5fa; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background: radial-gradient(1200px 800px at 10% 10%, #1f2937, #0b1221 60%, #050a16 100%);
+      color: var(--txt); display: grid; place-items: center; min-height: 100vh; padding: 24px;
+    }
+    .card {
+      width: 100%; max-width: 560px; background: linear-gradient(180deg, #0b1221, #0a0f1b);
+      border: 1px solid #1f2937; border-radius: 18px; padding: 22px; box-shadow: 0 10px 40px rgba(0,0,0,.35);
+    }
+    h1 { margin: 0 0 8px; font-size: 1.6rem; letter-spacing: .3px; }
+    p  { margin: 0 0 18px; color: var(--muted); font-size: .95rem; }
+    label { font-size: .9rem; color: var(--muted); display: block; margin-bottom: 8px; }
+    input[type="url"] {
+      width: 100%; padding: 14px 14px; border-radius: 12px; border: 1px solid #243042;
+      background: #0c1220; color: var(--txt); outline: none; font-size: .98rem;
+    }
+    input[type="url"]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(96,165,250,.15); }
+    .row { display: flex; gap: 10px; margin-top: 14px; }
+    button {
+      appearance: none; border: 1px solid #2a3a52; background: #12203a; color: var(--txt);
+      padding: 12px 16px; border-radius: 12px; font-weight: 600; cursor: pointer; transition: transform .02s ease;
+    }
+    button.primary { background: #1f3b66; border-color: #2b4f8c; }
+    button:hover { filter: brightness(1.05); }
+    button:active { transform: translateY(1px); }
+    .result {
+      margin-top: 18px; display: none; align-items: center; gap: 10px; padding: 12px;
+      background: #0d1a2e; border: 1px solid #1f2f49; border-radius: 12px; word-break: break-all;
+    }
+    .error { margin-top: 12px; color: #fda4af; display: none; }
+    .hr { height: 1px; background: #1f2937; margin: 18px 0; border-radius: 999px; }
+    small.kb { color: var(--muted); display: block; margin-top: 8px; }
+    .footer { text-align: center; margin-top: 16px; color: #6b7280; font-size: .85rem; }
+    a { color: #93c5fd; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <main class="card" role="main">
+    <h1>URL Shortener</h1>
+    <p>Paste a long URL and get a compact link from your Node.js service.</p>
+
+    <form id="shorten-form" autocomplete="off">
+      <label for="longUrl">Long URL</label>
+      <input id="longUrl" name="longUrl" type="url" placeholder="https://example.com/very/long/link" required />
+      <div class="row">
+        <button type="submit" class="primary">Shorten</button>
+        <button type="button" id="clear">Clear</button>
+      </div>
+      <small class="kb">Tip: Your API should be running at <code>http://localhost:5000</code>.</small>
+      <div class="error" id="error"></div>
+      <div class="hr"></div>
+      <div class="result" id="result" aria-live="polite">
+        <span id="shortLink"></span>
+        <button type="button" id="copy">Copy</button>
+        <button type="button" id="open">Open</button>
+      </div>
+    </form>
+
+    <div class="footer">Powered by Express + MongoDB Atlas</div>
+  </main>
+
+  <script>
+    // Change this if your backend runs elsewhere (e.g., deployed URL)
+    const API_BASE = 'http://localhost:5000';
+
+    const form = document.getElementById('shorten-form');
+    const longUrlInput = document.getElementById('longUrl');
+    const resultBox = document.getElementById('result');
+    const shortLinkSpan = document.getElementById('shortLink');
+    const errorBox = document.getElementById('error');
+    const copyBtn = document.getElementById('copy');
+    const openBtn = document.getElementById('open');
+    const clearBtn = document.getElementById('clear');
+
+    function showError(msg) {
+      errorBox.textContent = msg || 'Something went wrong.';
+      errorBox.style.display = 'block';
+      resultBox.style.display = 'none';
+    }
+
+    function clearError() {
+      errorBox.textContent = '';
+      errorBox.style.display = 'none';
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearError();
+
+      const longUrl = longUrlInput.value.trim();
+      if (!longUrl) return showError('Please enter a URL.');
+
+      try {
+        const res = await fetch(`${API_BASE}/shorten`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ longUrl })
+        });
+
+        if (!res.ok) {
+          const err = await res.text();
+          return showError(`${res.status} ${res.statusText}: ${err}`);
+        }
+
+        const data = await res.json();
+        const link = data.shortUrl || `${API_BASE}/${data.urlCode}`;
+        shortLinkSpan.innerHTML = `<a href="${link}" target="_blank" rel="noopener noreferrer">${link}</a>`;
+        resultBox.style.display = 'flex';
+      } catch (err) {
+        showError(err.message);
+      }
+    });
+
+    copyBtn.addEventListener('click', async () => {
+      const a = shortLinkSpan.querySelector('a');
+      if (!a) return;
+      try {
+        await navigator.clipboard.writeText(a.href);
+        copyBtn.textContent = 'Copied!';
+        setTimeout(() => (copyBtn.textContent = 'Copy'), 1200);
+      } catch {
+        showError('Could not copy to clipboard.');
+      }
+    });
+
+    openBtn.addEventListener('click', () => {
+      const a = shortLinkSpan.querySelector('a');
+      if (a) window.open(a.href, '_blank', 'noopener');
+    });
+
+    clearBtn.addEventListener('click', () => {
+      longUrlInput.value = '';
+      resultBox.style.display = 'none';
+      clearError();
+      longUrlInput.focus();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,394 @@
+I’ve carefully reviewed the screenshots you uploaded. Here's a detailed explanation of your task:
+
+---
+
+## **Task Overview**
+
+You need to **develop an HTTP URL Shortener Microservice**.
+This microservice should:
+
+* Shorten long URLs.
+* Support custom shortcodes.
+* Allow tracking and analytics of shortened URLs.
+* Follow strict logging, architecture, and error-handling rules.
+
+---
+
+## **Core Requirements & Constraints**
+
+### **1. Mandatory Logging Integration**
+
+* You **must** use the **Logging Middleware** from the Pre-Test Setup.
+* **No console logging** or inbuilt language loggers.
+* Every request and response must be logged.
+
+---
+
+### **2. Microservice Architecture**
+
+* Implement **one single microservice** that handles:
+
+  * URL shortening.
+  * URL redirection.
+  * Fetching statistics.
+* Must expose RESTful APIs.
+
+---
+
+### **3. Authentication**
+
+* **No authentication needed** for this evaluation.
+* Assume APIs are **pre-authorized**.
+* Do **not** implement user registration or login.
+
+---
+
+### **4. Short Link Uniqueness**
+
+* All generated short links must be **globally unique**.
+* Handle collisions if a user provides a **custom shortcode** that’s already taken.
+
+---
+
+### **5. Default Validity**
+
+* If the user does **not** provide a validity period, default = **30 minutes**.
+* If provided, it's always an **integer** (in minutes).
+
+---
+
+### **6. Custom Shortcodes**
+
+* Users **may** provide a shortcode.
+* If provided, ensure it is:
+
+  * **Unique** (not already in use).
+  * **Valid** (alphanumeric, reasonable length).
+* If not provided, generate a **unique shortcode automatically**.
+
+---
+
+### **7. Redirection**
+
+* When a user accesses a shortened URL:
+
+  * **Example**: `http://hostname:port/abcd1`
+  * Redirect them to the **original long URL**.
+  * If the link is **expired**, return an error instead.
+
+---
+
+### **8. Error Handling**
+
+* Must be **robust**:
+
+  * Return **appropriate HTTP status codes**.
+  * Return **JSON responses** for errors.
+* Handle scenarios like:
+
+  * Invalid URL format.
+  * Shortcode already in use.
+  * Shortcode not found.
+  * Expired links.
+  * Malformed input.
+
+---
+
+## **API Endpoints Specification**
+
+### **1. Create Short URL**
+
+**Endpoint**:
+
+```
+POST http://hostname:port/shorturls
+```
+
+**Request Body**:
+
+```json
+{
+  "url": "https://very-long-url.com/.../page",
+  "validity": 30,
+  "shortcode": "abcd1"
+}
+```
+
+* `url` → **required**: Long URL to shorten.
+* `validity` → **optional**: Expiration in minutes. Default = **30 minutes**.
+* `shortcode` → **optional**: Custom shortcode.
+
+**Expected Response** (**201 Created**):
+
+```json
+{
+  "shortLink": "https://hostname:port/abcd1",
+  "expiry": "2025-01-01T00:30:00Z"
+}
+```
+
+---
+
+### **2. Retrieve Short URL Statistics**
+
+**Endpoint**:
+
+```
+GET http://hostname:port/shorturls/:shortcode
+```
+
+**Expected JSON Response**:
+
+```json
+{
+  "totalClicks": 12,
+  "originalUrl": "https://long-url.com/page",
+  "createdAt": "2025-01-01T00:00:00Z",
+  "expiry": "2025-01-01T00:30:00Z",
+  "clickData": [
+    {
+      "timestamp": "2025-01-01T00:10:00Z",
+      "referrer": "https://google.com",
+      "geoLocation": "India"
+    }
+  ]
+}
+```
+
+---
+
+### **3. Redirection Endpoint**
+
+**Endpoint**:
+
+```
+GET http://hostname:port/:shortcode
+```
+
+* If **valid** → Redirect to **original URL**.
+* If **expired** → Return `410 Gone`.
+* If **not found** → Return `404 Not Found`.
+
+---
+
+## **Key Points to Keep in Mind**
+
+✅ Use **logging middleware** everywhere.
+✅ Default validity = **30 minutes** if not provided.
+✅ Ensure **shortcodes are globally unique**.
+✅ Maintain **click analytics** (count, timestamps, referrer, location).
+✅ Provide **clear, descriptive JSON errors**.
+
+---
+
+Do you want me to **design the complete architecture** and give you a **full implementation plan** for this microservice?
+I can provide:
+
+* Folder structure.
+* Database schema.
+* API routes.
+* Logging integration.
+* Sample code in **Node.js / Express** or **Python / FastAPI**.
+
+Alright 🙂, I’ll give you a **clear and detailed description** of the entire task based on the screenshots.
+
+---
+
+## **Task Description**
+
+You need to **develop an HTTP URL Shortener Microservice** that shortens long URLs, allows custom shortcodes, handles expiration, provides analytics, and follows strict logging and error-handling rules.
+
+This microservice should expose a set of **RESTful APIs** and meet all the given **requirements and constraints**.
+
+---
+
+## **Functional Requirements**
+
+### **1. Shorten Long URLs**
+
+* Users send a **long URL** to your API.
+* Your service generates a **shortened URL**.
+* Example:
+
+  ```
+  Input:  https://very-long-url.com/abc/xyz/123
+  Output: http://hostname:port/abcd1
+  ```
+
+---
+
+### **2. Custom Shortcodes**
+
+* Users **may** provide their own custom shortcode.
+* If provided, your service must:
+
+  * Check if it’s **valid** (alphanumeric, reasonable length).
+  * Check if it’s **unique** (not already used).
+* If no shortcode is provided, **automatically generate one**.
+
+---
+
+### **3. Default Validity & Expiration**
+
+* By default, every shortened URL should **expire in 30 minutes**.
+* Users can provide a **custom validity** (in minutes).
+* After expiry, accessing the short link should return an **error**.
+
+---
+
+### **4. Redirection**
+
+* When a user visits the shortened URL (e.g. `http://hostname:port/abcd1`):
+
+  * If the link is valid → **redirect** to the **original URL**.
+  * If expired → return **410 Gone**.
+  * If not found → return **404 Not Found**.
+
+---
+
+### **5. Retrieve Analytics**
+
+* You need to track and provide analytics for each shortened URL:
+
+  * **Total clicks**.
+  * **Original long URL**.
+  * **Creation date**.
+  * **Expiry date**.
+  * **Click details**:
+
+    * Timestamp of the click.
+    * Referrer (source of click).
+    * Geo-location (coarse-grained).
+
+---
+
+### **6. Error Handling**
+
+You must handle errors properly and return **clear JSON responses**:
+
+* **400 Bad Request** → Malformed input.
+* **404 Not Found** → Shortcode doesn’t exist.
+* **409 Conflict** → Shortcode already in use.
+* **410 Gone** → Shortcode expired.
+
+---
+
+### **7. Mandatory Logging**
+
+* You **must** use the **Logging Middleware** provided in the pre-test setup.
+* You cannot use `console.log` or default language loggers.
+* Log **every request and response**.
+
+---
+
+## **API Endpoints**
+
+### **1. Create Short URL**
+
+* **Method:** `POST`
+* **Route:**
+
+  ```
+  http://hostname:port/shorturls
+  ```
+* **Request Body:**
+
+  ```json
+  {
+    "url": "https://very-long-url.com/page",
+    "validity": 30,
+    "shortcode": "abcd1"
+  }
+  ```
+* **Response (201 Created):**
+
+  ```json
+  {
+    "shortLink": "https://hostname:port/abcd1",
+    "expiry": "2025-01-01T00:30:00Z"
+  }
+  ```
+
+---
+
+### **2. Retrieve Short URL Statistics**
+
+* **Method:** `GET`
+* **Route:**
+
+  ```
+  http://hostname:port/shorturls/:shortcode
+  ```
+* **Response:**
+
+  ```json
+  {
+    "totalClicks": 12,
+    "originalUrl": "https://long-url.com/page",
+    "createdAt": "2025-01-01T00:00:00Z",
+    "expiry": "2025-01-01T00:30:00Z",
+    "clickData": [
+      {
+        "timestamp": "2025-01-01T00:10:00Z",
+        "referrer": "https://google.com",
+        "geoLocation": "India"
+      }
+    ]
+  }
+  ```
+
+---
+
+### **3. Redirection Endpoint**
+
+* **Method:** `GET`
+* **Route:**
+
+  ```
+  http://hostname:port/:shortcode
+  ```
+* **Behavior:**
+
+  * If valid → Redirect to original URL.
+  * If expired → Return `410 Gone`.
+  * If invalid → Return `404 Not Found`.
+
+---
+
+## **Non-Functional Requirements**
+
+* **Logging** → Must use custom middleware.
+* **Scalability** → Microservice architecture.
+* **Reliability** → Handle collisions and invalid inputs gracefully.
+* **Performance** → Unique shortcode generation should be efficient.
+
+---
+
+## **Example Workflow**
+
+1. User sends a request to shorten:
+   `https://www.amazon.in/books/long-url/page1`
+2. Service responds with:
+   `https://hostname:port/XyZ123`
+3. User clicks the short link → gets redirected to the original URL.
+4. After 30 minutes, accessing the short link returns **410 Gone**.
+5. User requests analytics → gets clicks, referrers, expiry, etc.
+
+---
+
+## **In Summary**
+
+You need to build a **robust, production-ready URL shortener microservice** that:
+
+* Generates globally unique short URLs.
+* Allows custom shortcodes.
+* Handles expiry & redirection.
+* Provides click analytics.
+* Implements logging & error handling.
+* Exposes three main REST APIs.
+
+---
+
+Do you also want me to prepare a **complete architecture + database schema + API design** so that you can directly start coding this microservice?
+It will make implementation much faster. Should I?
+
